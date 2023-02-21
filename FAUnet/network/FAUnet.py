@@ -88,7 +88,7 @@ class TokenEmbed(nn.Module):
     B,C,H,W = x.shape
     x = rearrange(x, "b c (p1 h) (p2 w) -> b (p1 p2) (h w c)", p1=p1,p2=p2)
     pos = np.indices([self.N, self.N]).transpose(1,2,0).reshape(1,-1,2)
-    pos = torch.from_numpy(pos).broadcast_to(x.shape[0],x.shape[1],2)
+    pos = torch.from_numpy(pos).broadcast_to(x.shape[0],x.shape[1],2).cuda()
     x = torch.cat([x,pos],dim=-1)
     
     x = self.linear_project(x)
@@ -146,8 +146,25 @@ class Encoder(nn.Module):
 
     return tuple(skip_temp)
 
+class Deconv_Token(nn.Module):
+  def __init__(self,res,dim,in_chans,out_chans,img_size,patch_size,norm_layer) -> None:
+    super().__init__()
+    self.expandx2 = PatchExpand((res,res),dim,norm_layer)
+    self.token2img = Rearrange("b (h w c) (p1 p2) -> b c (p1 h) (p2 w)", 
+                c=in_chans,p1=img_size//patch_size,p2=img_size//patch_size,
+                h=patch_size,w=patch_size)
+    self.deconv = nn.ConvTranspose2d(in_chans,out_chans,1)
+  
+  def forward(self,x):
+    x = self.expandx2(x)
+    x = self.token2img(x)
+    x = self.deconv(x)
+
+    return x
+
+
 class Decoder(nn.Module):
-  def __init__(self,dim,res,out_chans,img_size,patch_size,mlp_ratio=4, 
+  def __init__(self,dim,res,in_chans,out_chans,img_size,patch_size,mlp_ratio=4, 
                mixer_ratio=1,drop=0.,act_layer=nn.GELU, norm_layer=nn.LayerNorm):
     super().__init__()
 
@@ -174,28 +191,23 @@ class Decoder(nn.Module):
     dim = dim//2
     res = res*2
 
-    self.rearrange = nn.Sequential(
-      PatchExpand((res,res),dim,norm_layer),
-      Rearrange("b (h w c) (p1 p2) -> b c (p1 h) (p2 w)", 
-                c=out_chans,p1=img_size//patch_size,p2=img_size//patch_size,
-                h=patch_size,w=patch_size)
-    )
+    self.deconv_token = Deconv_Token(res,dim,in_chans,out_chans,img_size,patch_size,norm_layer)
 
   def forward(self,skip_temp):
     x = self.stage1(skip_temp[-1])
     x = self.stage2(x) + skip_temp[-2]
     x = self.stage3(x) + skip_temp[-3]
     x = self.stage4(x) + skip_temp[-4]
-    x = self.rearrange(x)
+    x = self.deconv_token(x)
     return x
 
 class FAUnet(nn.Module):
-  def __init__(self, img_size=224,in_chans=1,patch_size=32, mlp_ratio=4,mixer_ratio=1,
+  def __init__(self, img_size=224,in_chans=1,out_chans=8,patch_size=32, mlp_ratio=4,mixer_ratio=1,
                drop=0.,act_layer=nn.GELU, norm_layer=nn.LayerNorm) -> None:
     super().__init__()
     self.encoder = Encoder(img_size,in_chans,patch_size, mlp_ratio,mixer_ratio,
                           drop, act_layer, norm_layer)
-    self.decoder = Decoder(self.encoder.final_dim,self.encoder.final_res,in_chans,
+    self.decoder = Decoder(self.encoder.final_dim,self.encoder.final_res,in_chans,out_chans,
                            img_size,patch_size,mlp_ratio,mixer_ratio,drop,act_layer,norm_layer)
 
   def forward(self,x):
