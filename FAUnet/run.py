@@ -7,4 +7,5 @@ net = Trainer_synapse("D:\\Projects\\datasets\\Synapse_npy", hyper2)
 
 
 if __name__ == '__main__':
-    net.train()
+    # net.train()
+    pass
