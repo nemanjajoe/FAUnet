@@ -112,7 +112,7 @@ class Trainer_synapse():
         self.save_history_file_path = os.path.join(self.save_path,"history.txt")
         if os.path.exists(self.save_history_file_path):
             date = time.strftime("%Y%m%d_%H%M%S",time.localtime(time.time()))
-            os.rename(self.save_history_file_path,f"history_{date}.txt")  
+            os.rename(self.save_history_file_path,os.path.join(self.save_path,f'history_{date}.txt'))  
 
     print('Synapse Trainer initalied !')
 
