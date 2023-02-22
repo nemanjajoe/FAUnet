@@ -66,7 +66,7 @@ class FAttention(nn.Module):
   def __init__(self, d_model,seq_len,mixer_ratio=1,norm_laer=nn.LayerNorm):
     super().__init__()
     self.mlp_mixer = MlpMixer(dim=d_model,seq_len=seq_len,mixer_ratio=mixer_ratio)
-    # self.norm = norm_laer(d_model)
+    self.norm = norm_laer(d_model)
 
   def forward(self,q,k,v):
     """
@@ -76,8 +76,9 @@ class FAttention(nn.Module):
     z_q = fft.fft(fft.fft(q,dim=2),dim=1)
     z_k = fft.fft(fft.fft(k,dim=2),dim=1)
     x = self.mlp_mixer(torch.real(z_q), torch.real(z_k))
-    x = fft.fft(fft.fft(x,dim=1),dim=2)
+    x = fft.fft(fft.fft(x,dim=2),dim=1)
     x = torch.real(x)
+    x = self.norm(x)
     x += v
     return x
 

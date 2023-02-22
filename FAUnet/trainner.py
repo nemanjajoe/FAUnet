@@ -59,8 +59,6 @@ def validate_epoch(model, criterion, validate_list, validate_loader_args,num_cla
 
       if scheduler is not None:
           scheduler.step(loss)
-          lr = scheduler.get_lr()
-          print(f'\t lr : {lr}')
 
     return running_loss/length, dice_class/length
 

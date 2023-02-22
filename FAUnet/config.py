@@ -75,7 +75,7 @@ FAUnet_synapse_pretrain2= {
 FAUnet_synapse_pretrain3= {
   'save_path' : 'D:\\Projects\\results\\FAUnet\\synapes_pretain3',
   'device'    : 'cuda:0' if torch.cuda.is_available() else 'cpu',
-  'epoch_num' : int(1e3),
+  'epoch_num' : int(1e4),
   'num_classes': NCLS,
   'pretrained_params' : None,
   'model'     : FAUnet,
@@ -86,7 +86,7 @@ FAUnet_synapse_pretrain3= {
   'optimizer_args': {'lr' : 1e-4},
   'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau,
   'scheduler_args':{},
-  'train_loader_args' : {'batch_size':64, 'shuffle':True, 'num_workers':1, 'pin_memory':True, 'drop_last':True},
+  'train_loader_args' : {'batch_size':128, 'shuffle':True, 'num_workers':1, 'pin_memory':True, 'drop_last':True},
   'validate_loader_args': {'batch_size':64, 'shuffle':True, 'num_workers':1, 'pin_memory':True, 'drop_last':True},
   'eval_frequncy': 200,
   'flags' :{
